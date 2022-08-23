@@ -1,4 +1,4 @@
-# frigate-telegram-notify
+# frigate-telegram-notification-bot
 
 This is a Telegram notification bot for Frigate. Meant to serve as an alternative for those who are happy using Frigate as an NVR and would like push notification without running Home Assistant.
 
