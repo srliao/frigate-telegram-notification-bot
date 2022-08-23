@@ -5,10 +5,14 @@ services:
     build:
       context: .
       dockerfile: ./notifybot/Dockerfile
-    volume:
+    container_name: notifybot
+    restart: unless-stopped
+    links:
+      - mosquitto:mosquitto
+    volumes:
       - ./notifybot:/app
-      - go.mod:/app/go.mod
-      - go.sum:/app/go.sum
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
     environment:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
@@ -18,6 +22,9 @@ services:
       - FRIGATE_PORT=${FRIGATE_PORT}
       - TELEGRAM_KEY=${TELEGRAM_KEY}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    depends_on:
+      - mosquitto
+
   mosquitto:
     build: .
     environment:
