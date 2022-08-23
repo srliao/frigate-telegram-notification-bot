@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/srliao/frigate-telegram-notify/notifybot/pkg/bot"
+	"github.com/srliao/frigate-telegram-notify/pkg/bot"
 )
 
 func main() {

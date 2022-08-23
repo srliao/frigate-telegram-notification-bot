@@ -4,15 +4,16 @@ services:
   notifybot:
     build:
       context: .
-      dockerfile: ./notifybot/Dockerfile
+      dockerfile: ./Dockerfile_Notifybot
     container_name: notifybot
     restart: unless-stopped
     links:
       - mosquitto:mosquitto
     volumes:
-      - ./notifybot:/app
-      - ./go.mod:/app/go.mod
-      - ./go.sum:/app/go.sum
+      - ./pkg:/pkg
+      - ./main.go:/main.go
+      - ./go.mod:/go.mod
+      - ./go.sum:/go.sum
     environment:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
