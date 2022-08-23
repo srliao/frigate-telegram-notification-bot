@@ -1,6 +1,23 @@
 version: "3"
 
 services:
+  notifybot:
+    build:
+      context: .
+      dockerfile: ./notifybot/Dockerfile
+    volume:
+      - ./notifybot:/app
+      - go.mod:/app/go.mod
+      - go.sum:/app/go.sum
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_USERNAME=${MOSQUITTO_USERNAME}
+      - MQTT_PASSWORD=${MOSQUITTO_PASSWORD}
+      - FRIGATE_HOST=${FRIGATE_HOST}
+      - FRIGATE_PORT=${FRIGATE_PORT}
+      - TELEGRAM_KEY=${TELEGRAM_KEY}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
   mosquitto:
     build: .
     environment:
