@@ -76,10 +76,10 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 		return
 	}
 
-	//ignore if on driveway and not multiple zone
-	if evt.After.Camera == "driveway" {
-		if len(evt.After.EnteredZones) < 2 {
-			fmt.Printf("Object %v detected on driveway but only entered zones %v\n", evt.After.Label, evt.After.EnteredZones)
+	//ignore if zone count not met
+	if count, ok := b.cfg.RequiredZoneCount[evt.After.Camera]; ok {
+		if len(evt.After.EnteredZones) < count {
+			fmt.Printf("Object %v detected on %v but only entered zones %v\n", evt.After.Label, evt.After.Camera, evt.After.EnteredZones)
 			return
 		}
 	}

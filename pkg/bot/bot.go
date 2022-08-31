@@ -16,13 +16,14 @@ import (
 )
 
 type Config struct {
-	BrokerURL      string `yaml:"broker_url"`
-	BrokerUsername string `yaml:"broker_username"`
-	BrokerPassword string `yaml:"broker_password"`
-	FrigateURL     string `yaml:"frigate_url"`
-	TelegramToken  string `yaml:"telegram_token"`
-	TelegramChatID int64  `yaml:"telegram_chat_id"`
-	DataFolder     string `yaml:"data_folder"`
+	BrokerURL         string         `yaml:"broker_url"`
+	BrokerUsername    string         `yaml:"broker_username"`
+	BrokerPassword    string         `yaml:"broker_password"`
+	FrigateURL        string         `yaml:"frigate_url"`
+	TelegramToken     string         `yaml:"telegram_token"`
+	TelegramChatID    int64          `yaml:"telegram_chat_id"`
+	DataFolder        string         `yaml:"data_folder"`
+	RequiredZoneCount map[string]int `yaml:"camera_required_zone_count"`
 }
 
 type bot struct {
