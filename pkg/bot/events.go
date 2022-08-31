@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	badger "github.com/dgraph-io/badger/v3"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -103,10 +104,11 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 			))
 			if err == nil {
 				err = b.db.Update(func(txn *badger.Txn) error {
-					err := txn.Set(
+					e := badger.NewEntry(
 						[]byte(strconv.Itoa(msg.MessageID)),
 						[]byte(evt.After.ID),
-					)
+					).WithTTL(time.Hour * 24 * 10)
+					err := txn.SetEntry(e)
 					return err
 				})
 				if err != nil {
@@ -122,10 +124,11 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 			msg, err = b.tb.Send(photo)
 			if err == nil {
 				err = b.db.Update(func(txn *badger.Txn) error {
-					err := txn.Set(
+					e := badger.NewEntry(
 						[]byte(strconv.Itoa(msg.MessageID)),
 						[]byte(evt.After.ID),
-					)
+					).WithTTL(time.Hour * 24 * 10)
+					err := txn.SetEntry(e)
 					return err
 				})
 				if err != nil {
@@ -165,7 +168,20 @@ func (b *bot) sendSnapshot(id string, replyTo int) {
 		Bytes: pic,
 	}
 	photo := tgbotapi.NewPhoto(b.cfg.TelegramChatID, photoFileBytes)
-	b.tb.Send(photo)
+	msg, err := b.tb.Send(photo)
+	if err == nil {
+		err = b.db.Update(func(txn *badger.Txn) error {
+			e := badger.NewEntry(
+				[]byte(strconv.Itoa(msg.MessageID)),
+				[]byte(id),
+			).WithTTL(time.Hour * 24 * 10)
+			err := txn.SetEntry(e)
+			return err
+		})
+		if err != nil {
+			log.Printf("Error saving message id into db: %v", err)
+		}
+	}
 }
 
 func (b *bot) sendClip(id string, replyTo int) {
@@ -181,5 +197,18 @@ func (b *bot) sendClip(id string, replyTo int) {
 		Bytes: vid,
 	}
 	video := tgbotapi.NewVideo(b.cfg.TelegramChatID, vidBytes)
-	b.tb.Send(video)
+	msg, err := b.tb.Send(video)
+	if err == nil {
+		err = b.db.Update(func(txn *badger.Txn) error {
+			e := badger.NewEntry(
+				[]byte(strconv.Itoa(msg.MessageID)),
+				[]byte(id),
+			).WithTTL(time.Hour * 24 * 10)
+			err := txn.SetEntry(e)
+			return err
+		})
+		if err != nil {
+			log.Printf("Error saving message id into db: %v", err)
+		}
+	}
 }
