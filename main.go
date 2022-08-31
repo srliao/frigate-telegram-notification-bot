@@ -2,28 +2,28 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"io"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/srliao/frigate-telegram-notify/pkg/bot"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
-	chatIdStr := os.Getenv("TELEGRAM_CHAT_ID")
-	chatId, err := strconv.ParseInt(chatIdStr, 10, 64)
+	file, err := os.Open("/config.yaml")
 	if err != nil {
-		log.Fatalf("Invalid chat id %v, cannot parse to int", chatIdStr)
+		log.Fatal(err)
+	}
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	cfg := bot.Config{
-		BrokerURL:      fmt.Sprintf("tcp://%s:%s", os.Getenv("MQTT_HOST"), os.Getenv("MQTT_PORT")),
-		BrokerUsername: os.Getenv("MQTT_USERNAME"),
-		BrokerPassword: os.Getenv("MQTT_PASSWORD"),
-		FrigateURL:     fmt.Sprintf("http://%s:%s", os.Getenv("FRIGATE_HOST"), os.Getenv("FRIGATE_PORT")),
-		TelegramToken:  os.Getenv("TELEGRAM_KEY"),
-		TelegramChatID: chatId,
+	var cfg bot.Config
+	err = yaml.Unmarshal([]byte(data), &cfg)
+	if err != nil {
+		log.Fatalf("error: %v", err)
 	}
 
 	pretty, _ := json.MarshalIndent(cfg, "", " ")

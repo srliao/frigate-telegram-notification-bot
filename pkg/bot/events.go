@@ -7,7 +7,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
+	badger "github.com/dgraph-io/badger/v3"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -72,6 +74,15 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 		fmt.Printf("Stationary object %v detect on %v\n", evt.After.Label, evt.After.Camera)
 		return
 	}
+
+	//ignore if on driveway and not multiple zone
+	if evt.After.Camera == "driveway" {
+		if len(evt.After.EnteredZones) < 2 {
+			fmt.Printf("Object %v detected on driveway but only entered zones %v\n", evt.After.Label, evt.After.EnteredZones)
+			return
+		}
+	}
+
 	fmt.Printf("%v detect on %v\n", evt.After.Label, evt.After.Camera)
 
 	b.lastEvent = evt.After.ID
@@ -86,16 +97,41 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 			))
 			evt.pic = thumb
 		} else {
-			b.tb.Send(tgbotapi.NewMessage(
+			msg, err := b.tb.Send(tgbotapi.NewMessage(
 				b.cfg.TelegramChatID,
 				fmt.Sprintf("New %v detected on camera %v (id: %v).", evt.After.Label, evt.After.Camera, evt.After.ID),
 			))
+			if err == nil {
+				err = b.db.Update(func(txn *badger.Txn) error {
+					err := txn.Set(
+						[]byte(strconv.Itoa(msg.MessageID)),
+						[]byte(evt.After.ID),
+					)
+					return err
+				})
+				if err != nil {
+					log.Printf("Error saving message id into db: %v", err)
+				}
+			}
+
 			photoFileBytes := tgbotapi.FileBytes{
 				Name:  "thumbnail",
 				Bytes: thumb,
 			}
 			photo := tgbotapi.NewPhoto(b.cfg.TelegramChatID, photoFileBytes)
-			b.tb.Send(photo)
+			msg, err = b.tb.Send(photo)
+			if err == nil {
+				err = b.db.Update(func(txn *badger.Txn) error {
+					err := txn.Set(
+						[]byte(strconv.Itoa(msg.MessageID)),
+						[]byte(evt.After.ID),
+					)
+					return err
+				})
+				if err != nil {
+					log.Printf("Error saving message id into db: %v", err)
+				}
+			}
 		}
 	}
 	switch evt.Type {
@@ -107,55 +143,17 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 			}
 		}
 	case "end":
-		b.tb.Send(tgbotapi.NewMessage(
-			b.cfg.TelegramChatID,
-			fmt.Sprintf("Event id %v ended; clip now available", evt.After.ID),
-		))
+		// b.tb.Send(tgbotapi.NewMessage(
+		// 	b.cfg.TelegramChatID,
+		// 	fmt.Sprintf("Event id %v ended; clip now available", evt.After.ID),
+		// ))
 		evt.ended = true
 	}
 	b.events[evt.After.ID] = evt
 }
 
-func (b *bot) sendLastThumbnail(replyTo int) {
-	evt, ok := b.events[b.lastEvent]
-	if !ok {
-		msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, "No events yet!")
-		msg.ReplyToMessageID = replyTo
-		b.tb.Send(msg)
-		return
-	}
-	var pic []byte
-	if evt.pic != nil {
-		pic = evt.pic
-	} else {
-		thumb, err := b.media(evt.After.ID, "thumbnail.jpg")
-		if err != nil {
-			msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, fmt.Sprintf("Sorry! Error occured grabbing thumbnail for id %v", b.lastEvent))
-			msg.ReplyToMessageID = replyTo
-			b.tb.Send(msg)
-			return
-		}
-		pic = thumb
-	}
-
-	photoFileBytes := tgbotapi.FileBytes{
-		Name:  "thumbnail",
-		Bytes: pic,
-	}
-	photo := tgbotapi.NewPhoto(b.cfg.TelegramChatID, photoFileBytes)
-	b.tb.Send(photo)
-}
-
-func (b *bot) sendLastSnapshot(replyTo int) {
-	evt, ok := b.events[b.lastEvent]
-	if !ok {
-		msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, "No events yet!")
-		msg.ReplyToMessageID = replyTo
-		b.tb.Send(msg)
-		return
-	}
-
-	pic, err := b.media(evt.After.ID, "snapshot.jpg")
+func (b *bot) sendLastSnapshot(id string, replyTo int) {
+	pic, err := b.media(id, "snapshot.jpg")
 	if err != nil {
 		msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, fmt.Sprintf("Sorry! Error occured grabbing snapshot for id %v", b.lastEvent))
 		msg.ReplyToMessageID = replyTo
@@ -170,26 +168,8 @@ func (b *bot) sendLastSnapshot(replyTo int) {
 	b.tb.Send(photo)
 }
 
-func (b *bot) sendLastClip(replyTo int) {
-	evt, ok := b.events[b.lastEvent]
-	if !ok {
-		msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, "No events yet!")
-		msg.ReplyToMessageID = replyTo
-		b.tb.Send(msg)
-		return
-	}
-
-	if !evt.ended {
-		msg := tgbotapi.NewMessage(
-			b.cfg.TelegramChatID,
-			fmt.Sprintf("Event id %v not ended yet; no clip available", b.lastEvent),
-		)
-		msg.ReplyToMessageID = replyTo
-		b.tb.Send(msg)
-		return
-	}
-
-	vid, err := b.media(evt.After.ID, "clip.mp4")
+func (b *bot) sendLastClip(id string, replyTo int) {
+	vid, err := b.media(id, "clip.mp4")
 	if err != nil {
 		msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, fmt.Sprintf("Sorry! Error occured grabbing snapshot for id %v", b.lastEvent))
 		msg.ReplyToMessageID = replyTo

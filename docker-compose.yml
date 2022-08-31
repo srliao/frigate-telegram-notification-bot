@@ -11,18 +11,11 @@ services:
       - mosquitto:mosquitto
     volumes:
       - ./pkg:/pkg
+      - ./db:/data
+      - ./config.yaml:/config.yaml
       - ./main.go:/main.go
       - ./go.mod:/go.mod
       - ./go.sum:/go.sum
-    environment:
-      - MQTT_HOST=mosquitto
-      - MQTT_PORT=1883
-      - MQTT_USERNAME=${MOSQUITTO_USERNAME}
-      - MQTT_PASSWORD=${MOSQUITTO_PASSWORD}
-      - FRIGATE_HOST=${FRIGATE_HOST}
-      - FRIGATE_PORT=${FRIGATE_PORT}
-      - TELEGRAM_KEY=${TELEGRAM_KEY}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     depends_on:
       - mosquitto
 
