@@ -1,0 +1,7 @@
+broker_url: tcp://mosquitto:1833
+broker_username: mosquitto
+broker_password: mosquitto
+frigate_url: http://192.168.1.5:5000
+telegram_token: xxxx:yyyyyyyy
+telegram_chat_id: -123456789
+data_folder: /data
