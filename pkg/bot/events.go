@@ -90,38 +90,38 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 	_, ok := b.events[evt.After.ID]
 	//if first time grab a picture and send it to the chat
 	if !ok {
-		if thumb, err := b.media(evt.After.ID, "thumbnail.jpg"); err != nil {
-			log.Printf("Error getting thumbnail for id %v: %v\n", evt.After.ID, err)
+		if snapshot, err := b.media(evt.After.ID, "snapshot.jpg"); err != nil {
+			log.Printf("Error getting snapshot for id %v: %v\n", evt.After.ID, err)
 			b.tb.Send(tgbotapi.NewMessage(
 				b.cfg.TelegramChatID,
-				fmt.Sprintf("New %v detected on camera %v (id: %v). Sorry I couldn't get a thumbnail :(", evt.After.Label, evt.After.Camera, evt.After.ID),
+				fmt.Sprintf("New %v detected on camera %v (id: %v). Sorry I couldn't get a snapshot :(", evt.After.Label, evt.After.Camera, evt.After.ID),
 			))
-			evt.pic = thumb
+			evt.pic = snapshot
 		} else {
-			msg, err := b.tb.Send(tgbotapi.NewMessage(
-				b.cfg.TelegramChatID,
-				fmt.Sprintf("New %v detected on camera %v (id: %v).", evt.After.Label, evt.After.Camera, evt.After.ID),
-			))
-			if err == nil {
-				err = b.db.Update(func(txn *badger.Txn) error {
-					e := badger.NewEntry(
-						[]byte(strconv.Itoa(msg.MessageID)),
-						[]byte(evt.After.ID),
-					).WithTTL(time.Hour * 24 * 10)
-					err := txn.SetEntry(e)
-					return err
-				})
-				if err != nil {
-					log.Printf("Error saving message id into db: %v", err)
-				}
-			}
+			// msg, err := b.tb.Send(tgbotapi.NewMessage(
+			// 	b.cfg.TelegramChatID,
+			// 	fmt.Sprintf("New %v detected on camera %v (id: %v).", evt.After.Label, evt.After.Camera, evt.After.ID),
+			// ))
+			// if err == nil {
+			// 	err = b.db.Update(func(txn *badger.Txn) error {
+			// 		e := badger.NewEntry(
+			// 			[]byte(strconv.Itoa(msg.MessageID)),
+			// 			[]byte(evt.After.ID),
+			// 		).WithTTL(time.Hour * 24 * 10)
+			// 		err := txn.SetEntry(e)
+			// 		return err
+			// 	})
+			// 	if err != nil {
+			// 		log.Printf("Error saving message id into db: %v", err)
+			// 	}
+			// }
 
 			photoFileBytes := tgbotapi.FileBytes{
-				Name:  "thumbnail",
-				Bytes: thumb,
+				Name:  "snapshot",
+				Bytes: snapshot,
 			}
 			photo := tgbotapi.NewPhoto(b.cfg.TelegramChatID, photoFileBytes)
-			msg, err = b.tb.Send(photo)
+			msg, err := b.tb.Send(photo)
 			if err == nil {
 				err = b.db.Update(func(txn *badger.Txn) error {
 					e := badger.NewEntry(
@@ -141,8 +141,8 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 	case "update":
 		if ok {
 			//update our thumbnail
-			if thumb, err := b.media(evt.After.ID, "thumbnail.jpg"); err == nil {
-				evt.pic = thumb
+			if snapshot, err := b.media(evt.After.ID, "snapshot.jpg"); err == nil {
+				evt.pic = snapshot
 			}
 		}
 	case "end":
