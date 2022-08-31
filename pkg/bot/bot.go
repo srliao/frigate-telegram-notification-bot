@@ -103,15 +103,24 @@ func (b *bot) handleTelegram() {
 	for update := range updates {
 		if update.Message != nil { // If we got a message
 			msg := update.Message
+			log.Printf(
+				"Message [%s: %v in %v]: %s\n",
+				update.Message.From.UserName,
+				update.Message.From.ID,
+				update.Message.Chat.ID,
+				update.Message.Text,
+			)
 			//do not respond if not in the group
 			if msg.Chat.ID != b.cfg.TelegramChatID {
+				log.Printf("Wrong chat id %v, expecting %v", msg.Chat.ID, b.cfg.TelegramChatID)
 				continue
 			}
 			if !msg.IsCommand() {
 				continue
 			}
-			log.Printf("Message [%s: %v]: %s", update.Message.From.UserName, update.Message.From.ID, update.Message.Text)
 
+			resp := tgbotapi.NewMessage(b.cfg.TelegramChatID, "")
+			resp.ReplyToMessageID = msg.MessageID
 			//check if it's a reply
 			if msg.ReplyToMessage != nil {
 				//grab event id from db
@@ -129,30 +138,33 @@ func (b *bot) handleTelegram() {
 				})
 				if err != nil {
 					log.Printf("Error grabbing key from response id: %v", err)
-					continue
+					resp.Text = "Sorry I couldn't find this event"
+					b.tb.Send(resp)
+				} else {
+					log.Printf("Key %v detected\n", key)
+					switch msg.Command() {
+					case "snapshot":
+						b.sendSnapshot(key, msg.MessageID)
+					case "clip":
+						b.sendClip(key, msg.MessageID)
+					}
 				}
-
-				switch msg.Command() {
-				case "snapshot":
-					b.sendLastSnapshot(key, msg.MessageID)
-				case "clip":
-					b.sendLastClip(key, msg.MessageID)
-				}
+				continue
 			}
 
 			//otherwise last id
+			log.Printf("Not a response: %v", msg.ReplyToMessage)
 
 			evt, ok := b.events[b.lastEvent]
 			if !ok {
-				next := tgbotapi.NewMessage(b.cfg.TelegramChatID, "No events yet!")
-				next.ReplyToMessageID = msg.MessageID
-				b.tb.Send(next)
+				resp.Text = "No events yet!"
+				b.tb.Send(resp)
 				continue
 			}
 
 			switch msg.Command() {
 			case "snapshot":
-				b.sendLastSnapshot(evt.After.ID, msg.MessageID)
+				b.sendSnapshot(evt.After.ID, msg.MessageID)
 			case "clip":
 				if !evt.ended {
 					next := tgbotapi.NewMessage(
@@ -163,7 +175,7 @@ func (b *bot) handleTelegram() {
 					b.tb.Send(next)
 					break
 				}
-				b.sendLastClip(evt.After.ID, msg.MessageID)
+				b.sendClip(evt.After.ID, msg.MessageID)
 			}
 		}
 	}

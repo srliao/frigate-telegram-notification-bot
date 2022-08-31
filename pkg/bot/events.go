@@ -152,7 +152,7 @@ func (b *bot) handleEvents(topics []string, data []byte) {
 	b.events[evt.After.ID] = evt
 }
 
-func (b *bot) sendLastSnapshot(id string, replyTo int) {
+func (b *bot) sendSnapshot(id string, replyTo int) {
 	pic, err := b.media(id, "snapshot.jpg")
 	if err != nil {
 		msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, fmt.Sprintf("Sorry! Error occured grabbing snapshot for id %v", b.lastEvent))
@@ -168,7 +168,7 @@ func (b *bot) sendLastSnapshot(id string, replyTo int) {
 	b.tb.Send(photo)
 }
 
-func (b *bot) sendLastClip(id string, replyTo int) {
+func (b *bot) sendClip(id string, replyTo int) {
 	vid, err := b.media(id, "clip.mp4")
 	if err != nil {
 		msg := tgbotapi.NewMessage(b.cfg.TelegramChatID, fmt.Sprintf("Sorry! Error occured grabbing snapshot for id %v", b.lastEvent))
