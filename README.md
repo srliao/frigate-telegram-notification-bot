@@ -8,18 +8,9 @@ Note that the bot will only send and respond to message on the provided group ch
 
 ## Install instructions (Docker Compose)
 
-You will first need a Telegram bot [token](https://core.telegram.org/bots) as well as your group chat [id](https://stackoverflow.com/a/38388851). Then create a `.env` file in the root folder with the following information:
+You will first need a Telegram bot [token](https://core.telegram.org/bots) as well as your group chat [id](https://stackoverflow.com/a/38388851). Then create a `config.yaml` by copying `example_config.yaml`.
 
-```
-MOSQUITTO_USERNAME=mosquitto
-MOSQUITTO_PASSWORD=mosquitto
-FRIGATE_HOST=192.168.100.58
-FRIGATE_PORT=5000
-TELEGRAM_KEY=XXXX:YYYYY
-TELEGRAM_CHAT_ID=-123456
-```
-
-Change the values accordingly.
+Change the values in the file accordingly.
 
 Start the MQTT server and the bot by running `docker compose up -d`.
 
